@@ -1,0 +1,147 @@
+# 5-stage test pipeline: emit → add_a → add_b → add_c → collect
+#
+# Each middle stage prepends a character tag to every line.
+# Output proves ordering: [C][B][A]line1 means the line passed
+# through add_a, then add_b, then add_c in that order.
+#
+# Setup:
+#   1. sudo bash install.sh
+#   2. sudo bash test/setup_5stage_test.sh
+#   3. Update sha256 values below with output from step 2
+#   4. sudo pipeline-composer run test/pipeline_5stage_test.yaml
+#   5. cat /tmp/composer_5stage_output.txt
+#   6. Expected: 10 lines like [C][B][A]line1 .. [C][B][A]line10
+
+pipeline:
+  name: "five_stage_test"
+  description: "5-stage test: emit, prepend [A], prepend [B], prepend [C], collect"
+
+  settings:
+    fifo_dir: "/var/run/composer/fifos"
+    log_dir: "/var/log/composer"
+    run_dir: "/var/run/composer"
+    selinux_enforce: true
+    fifo_mode: "0640"
+    umask: "0077"
+    hmac_signing: false
+    continuous: false
+
+  composables:
+    - name: "emit"
+      binary: "/usr/local/bin/composer-5s-emit"
+      sha256: "49324086203a9ad7bbc21994dae89a2a87b829c6fbcf90e0bdae3de4356a372d"
+      description: "Emits 10 plain text lines"
+      stdin_source: "/dev/null"
+
+      resources:
+        cpu_quota_percent: 50
+        memory_max_mb: 128
+        memory_high_mb: 100
+        pids_max: 4
+
+      seccomp:
+        allow_network: false
+        allow_fork: true
+
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+    - name: "add_a"
+      binary: "/usr/local/bin/composer-5s-add_a"
+      sha256: "00818130e771c6a8517de7d6067f67d858b3f52ff374ef70dcf73249de821af3"
+      description: "Prepends [A] to each line"
+
+      resources:
+        cpu_quota_percent: 50
+        memory_max_mb: 128
+        memory_high_mb: 100
+        pids_max: 4
+
+      seccomp:
+        allow_network: false
+        allow_fork: true
+
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+    - name: "add_b"
+      binary: "/usr/local/bin/composer-5s-add_b"
+      sha256: "6c3169450642d808748c1ab3400cdb898d0f9da64b629cb9d1a8133aaab77ee4"
+      description: "Prepends [B] to each line"
+
+      resources:
+        cpu_quota_percent: 50
+        memory_max_mb: 128
+        memory_high_mb: 100
+        pids_max: 4
+
+      seccomp:
+        allow_network: false
+        allow_fork: true
+
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+    - name: "add_c"
+      binary: "/usr/local/bin/composer-5s-add_c"
+      sha256: "b945eaa525499523183dfeac669b75c8775541f3a7e9cc20a491d2beb0c51abc"
+      description: "Prepends [C] to each line"
+
+      resources:
+        cpu_quota_percent: 50
+        memory_max_mb: 128
+        memory_high_mb: 100
+        pids_max: 4
+
+      seccomp:
+        allow_network: false
+        allow_fork: true
+
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+    - name: "collect"
+      binary: "/usr/local/bin/composer-5s-collect"
+      sha256: "dc76070b536498b326fdad3ea86b6dacca4d8705f525fdabc2e598f2a70b38aa"
+      description: "Writes final output to /tmp/composer_5stage_output.txt"
+      stdout_sink: "/dev/null"
+
+      resources:
+        cpu_quota_percent: 50
+        memory_max_mb: 128
+        memory_high_mb: 100
+        pids_max: 4
+
+      seccomp:
+        allow_network: false
+        allow_fork: true
+
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+  reporting:
+    method: "file"
+    path: "/var/log/composer/pipeline-stderr.log"
+    per_stage: true
+    rate_limit_bytes: 1048576
+    rate_interval_sec: 60

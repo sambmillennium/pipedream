@@ -1,0 +1,116 @@
+# Throughput test: 5-stage pipeline, 1MB in, +1MB per stage
+# emit(1MB) → add_a(+1MB) → add_b(+1MB) → add_c(+1MB) → collect(~4MB)
+
+pipeline:
+  name: "throughput_test"
+  description: "5-stage throughput benchmark: 1MB data growth per stage"
+
+  settings:
+    fifo_dir: "/var/run/composer/fifos"
+    log_dir: "/var/log/composer"
+    run_dir: "/var/run/composer"
+    selinux_enforce: true
+    fifo_mode: "0640"
+    umask: "0077"
+    hmac_signing: false
+    continuous: false
+
+  composables:
+    - name: "emit"
+      binary: "/usr/local/bin/composer-tp_emit"
+      sha256: "3e9adfbf9beafb21b6a9dddc140a74ca01c20900f1e430219ea8acf83d4afd45"
+      stdin_source: "/dev/null"
+      resources:
+        cpu_quota_percent: 100
+        memory_max_mb: 256
+        memory_high_mb: 200
+        pids_max: 8
+      seccomp:
+        allow_network: false
+        allow_fork: true
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+    - name: "add_a"
+      binary: "/usr/local/bin/composer-tp_add_a"
+      sha256: "40beb586c3900bd84012308e6b62f56d6b37e6d48c231d526f3570be441c19bf"
+      resources:
+        cpu_quota_percent: 100
+        memory_max_mb: 256
+        memory_high_mb: 200
+        pids_max: 8
+      seccomp:
+        allow_network: false
+        allow_fork: true
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+    - name: "add_b"
+      binary: "/usr/local/bin/composer-tp_add_b"
+      sha256: "9f91ec9a0fdac4d3f5d22b0df4d0d2d986a68b7941946d0db6063ed04e493fa7"
+      resources:
+        cpu_quota_percent: 100
+        memory_max_mb: 256
+        memory_high_mb: 200
+        pids_max: 8
+      seccomp:
+        allow_network: false
+        allow_fork: true
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+    - name: "add_c"
+      binary: "/usr/local/bin/composer-tp_add_c"
+      sha256: "837afca2122b17e61fb25ab4360c1e09c48350fb411274ce3468a468b7efb5ea"
+      resources:
+        cpu_quota_percent: 100
+        memory_max_mb: 256
+        memory_high_mb: 200
+        pids_max: 8
+      seccomp:
+        allow_network: false
+        allow_fork: true
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+    - name: "collect"
+      binary: "/usr/local/bin/composer-tp_collect"
+      sha256: "20e02d6c56193b95aa4629181becf4a4bd11bff9c3c89458c87be4b90df8c458"
+      stdout_sink: "/dev/null"
+      resources:
+        cpu_quota_percent: 100
+        memory_max_mb: 256
+        memory_high_mb: 200
+        pids_max: 8
+      seccomp:
+        allow_network: false
+        allow_fork: true
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+  reporting:
+    method: "file"
+    path: "/var/log/composer/pipeline-stderr.log"
+    per_stage: true
+    rate_limit_bytes: 1048576
+    rate_interval_sec: 60

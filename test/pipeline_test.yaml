@@ -1,0 +1,103 @@
+# Test pipeline: generate → filter → store
+#
+# Setup:
+#   1. sudo bash install.sh
+#   2. sudo bash test/setup_test.sh
+#   3. Update sha256 values below with output from step 2
+#   4. pipeline-composer validate test/pipeline_test.yaml
+#   5. sudo pipeline-composer deploy test/pipeline_test.yaml
+#   6. sudo pipeline-composer run test/pipeline_test.yaml
+#   7. cat /tmp/composer_test_output.jsonl
+#   8. cat /var/log/composer/generate.stderr.log
+#   9. cat /var/log/composer/filter.stderr.log
+#  10. cat /var/log/composer/store.stderr.log
+
+pipeline:
+  name: "test_pipeline"
+  description: "3-stage test: generate, filter by severity, store"
+
+  settings:
+    fifo_dir: "/var/run/composer/fifos"
+    log_dir: "/var/log/composer"
+    run_dir: "/var/run/composer"
+    selinux_enforce: true
+    fifo_mode: "0640"
+    umask: "0077"
+    hmac_signing: false    # Test scripts are line-based but keep simple for first test
+    continuous: false
+
+  composables:
+    - name: "generate"
+      binary: "/usr/local/bin/composer-test-generate"
+      sha256: "2e1eab90980d531c6a4d393eea6b18a48d9d172261ac7085c7e987378f9ae15d"
+      description: "Emits 20 JSON records with mixed severity"
+      stdin_source: "/dev/null"
+
+      resources:
+        cpu_quota_percent: 50
+        memory_max_mb: 128
+        memory_high_mb: 100
+        pids_max: 4
+
+      seccomp:
+        allow_network: false
+        allow_fork: true      # bash needs fork
+
+      namespaces:
+        pid: true
+        net: true
+        mount: false           # needs host access for date, seq
+        ipc: true
+        uts: true
+
+    - name: "filter"
+      binary: "/usr/local/bin/composer-test-filter"
+      sha256: "af2440e7cefad6d8c7189a4e22215e4519a15feac911b94dbb9e91bba0cf9ec8"
+      description: "Passes only warn and error severity"
+
+      resources:
+        cpu_quota_percent: 50
+        memory_max_mb: 128
+        memory_high_mb: 100
+        pids_max: 4
+
+      seccomp:
+        allow_network: false
+        allow_fork: true
+
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+    - name: "store"
+      binary: "/usr/local/bin/composer-test-store"
+      sha256: "ef6bb888fdaf9609db6d076a4da4b600b04ba914080a5ed0139fa0b8631e2f88"
+      description: "Writes filtered records to /tmp/composer_test_output.jsonl"
+      stdout_sink: "/dev/null"
+
+      resources:
+        cpu_quota_percent: 50
+        memory_max_mb: 128
+        memory_high_mb: 100
+        pids_max: 4
+
+      seccomp:
+        allow_network: false
+        allow_fork: true
+
+      namespaces:
+        pid: true
+        net: true
+        mount: false
+        ipc: true
+        uts: true
+
+  reporting:
+    method: "file"
+    path: "/var/log/composer/pipeline-stderr.log"
+    per_stage: true
+    rate_limit_bytes: 1048576
+    rate_interval_sec: 60
