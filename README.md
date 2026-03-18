@@ -1,22 +1,22 @@
 # PipeDream
 
-### PipeDream is a security configuration tool to help users to rapidly chain Linux applications into a unidirectional pipeline of components connected by named FIFOs, with each stage isolated by DAC, SELinux MAC, seccomp filtering, namespace confinement, and cgroup enforcement.
+### PipeDream is a Linux security cheat code to help users to rapidly chain Linux applications into a unidirectional pipeline of components connected by named FIFOs, with each stage isolated by DAC, SELinux MAC, seccomp filtering, namespace confinement, and cgroup enforcement.
 
-Chaining applications together securely on Linux systems requires wrestling with SELinux policy, permissions and namespace isolation for hours. PipeDream exists to try to get rid of those headaches. Manually writing wrapper scripts, guessing at security and tuning selinux by trial and error is what it attempts to get rid. The purpose of PipeDream is straightforward, it lets a user take a bunch of existing applications and create a hardened unidirectional data processing pipeline with a single yaml file. All the isolation, enforcement and security layers are abstracted and the pipeline just works. PipeDream handles all the plumbing and the security underneath so you can focus on security enforcing functions and other fun stuff at the application layer. 
+Chaining applications together securely on Linux systems requires wrestling with SELinux policy, permissions and namespace isolation for hours. With PipeDream the isolation, enforcement and security layers are abstracted, it handles the plumbing and some of the security underneath so you can focus on security enforcing functions and other fun stuff at the application layer. 
 
-You might us this for orchestrating components of a Cross Domain Solution, where information moves from one security context to another and absolutely cannot flow backwards. Or just for processing sensitive data through multiple stages where each stage needs to be isolated and tamper-proof. Or when you need audit trails and strict resource limits on untrusted third-party binaries. Whatever your use case all you do is describe your pipeline in YAML, Run a command and then get a pipeline of components that actually stays secure. 
+You might us this for orchestrating components of a Cross Domain Solution, where information moves from one security context to another and absolutely cannot flow backwards. Or just for processing sensitive data through multiple stages where each stage needs to be isolated and tamper-proof. Whatever your use case all you do is describe your pipeline in YAML, Run a command and then get a pipeline of components.
 
 ## Security Model
 
-Each pipeline stage ("composable") is protected with:
+Each pipeline stage ("composable") is configured with:
 
-1. Binary SHA-256 integrity verification during validation and wrapper pre-execution.
+1. SHA-256 integrity verification during validation and wrapper pre-execution.
 
 2. DAC isolation assigns per-composable UID and GID with FIFO permissions set to 0640.
 
 3. SELinux MAC enforces per-domain types with compile-time neverallow rules.
 
-4. seccomp-bpf restricts syscalls through a per-composable whitelist in OCI JSON format.
+4. Restricted syscalls through a per-composable whitelist in OCI JSON format.
 
 5. Namespaces isolate PID, network, mount, IPC, and UTS via unshare.
 
@@ -31,8 +31,6 @@ Each pipeline stage ("composable") is protected with:
 10. FD isolation opens FIFOs only after the privilege drop.
 
 11. systemd hardening enables controls such as NoNewPrivileges, PrivateNetwork, PrivateTmp, PrivateIPC, ProtectProc, and MemoryDenyWriteExecute.
-
-12. Required files enforce POSIX ACLs with per-stage SELinux data types.
 
 Unidirectionality is enforced at three independent levels: DAC (FIFO ownership checked at open), SELinux (`neverallow` reverse/non-adjacent FIFO access compile-time enforced), and application design (forward-only FIFO chaining).
 
